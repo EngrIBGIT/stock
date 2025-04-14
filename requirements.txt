@@ -1,0 +1,9 @@
+pandas
+streamlit
+seaborn
+numpy
+matplotlib
+fpdf
+tensorflow
+plotly
+requests
