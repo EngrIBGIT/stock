@@ -17,78 +17,22 @@ import tensorflow
 st.set_page_config(page_title="Stock Comparison App", layout="wide")
 
 # --- Theme Colors ---
-st.markdown("""
-<style>
-.main {background-color: #e0f7fa;}
-.sidebar .sidebar-content {background-color: #d8f3dc;}
-.css-1q8dd3e {background-color: #fff3cd;}
-.marquee {
-    font-size: 18px;
-    color: #0c0c0c;
-    padding: 10px;
-    background-color: #ffffe0;
-    overflow: hidden;
-    white-space: nowrap;
-    animation: marquee 20s linear infinite;
-}
-@keyframes marquee {
-    0% {transform: translateX(100%);}
-    100% {transform: translateX(-100%);}
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #e0f7fa;  /* Sky blue */
+    }
+    .sidebar .sidebar-content {
+        background-color: #d8f3dc; /* Light green */
+    }
+    .css-1q8dd3e {background-color: #fff3cd;}  /* Lemon */
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-# --- Load Pre-trained Models ---
-xgb_model_pep = Booster()
-xgb_model_pep.load_model("xgb_pep_model.xgb") # (open('xgb_pep_tuned_model.pkl' , "rb"))
-xgb_model_ko = Booster()
-xgb_model_ko.load_model("xgb_ko_model.xgb") #xgb_ko_tuned_model.pkl
-lstm_model_pep = load_model("best_model_pep_tuned.h5")
-lstm_model_pep.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
-print("Model recompiled successfully!")
-lstm_model_ko = load_model("best_model_ko_tuned.h5")
-lstm_model_ko.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
-print("Model recompiled successfully!")
-
-try:
-    lstm_model_ko = load_model("C:/Users/ibrah/Documents/GitHub/stock/best_model_ko_tuned.h5")
-    print("KO LSTM model loaded successfully!")
-except FileNotFoundError:
-    print("Error: Model file not found. Please check the file path.")
-except Exception as e:
-    print(f"Error loading KO LSTM model: {e}")
-
-
-# --- API Keys ---
-FINNHUB_API_KEY = "cvuguhpr01qjg139orhgcvuguhpr01qjg139ori0"
-MARKETSTACK_API_KEY = "359c056969eeb01527ce644a4df15822"
-
-# --- Cached API with retry ---
-@st.cache_data(ttl=600)
-def get_stock_price(symbol):
-    try:
-        url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={FINNHUB_API_KEY}"
-        for _ in range(3):
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                return response.json().get('c', 'N/A')
-            time.sleep(1)
-    except Exception:
-        return "Error"
-    return "Error"
-
-@st.cache_data(ttl=600)
-def get_financial_news():
-    try:
-        url = f"http://api.marketstack.com/v1/news?access_key={MARKETSTACK_API_KEY}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json().get('data', [])
-    except Exception:
-        return []
-    return []
-
-# --- Setup Stock Ticker ---
+# --- Title ---
 st.title("📈 Stock Comparison and Prediction App")
 ticker_symbols = ['NVDA', 'PG', 'PEP', 'RIVN', 'AAPL', 'GOOGL', 'MSFT', 'AMZN', 'META', 'NFLX']
 ticker_prices = [get_stock_price(sym) for sym in ticker_symbols]
@@ -228,31 +172,8 @@ with tab5:
         pdf.add_page()
         pdf.set_font("Arial", size=12)
         pdf.cell(200, 10, txt="Stock Analysis Report", ln=True, align="C")
-        for i in range(len(result['primary'])):
-            line = f"Day {i+1}: {result['primary_stock']}={result['primary'][i]} | {result['competitor_stock']}={result['competitor'][i]}"
-            pdf.cell(200, 10, txt=line.encode('latin-1', 'replace').decode('latin-1'), ln=True)
-        advice_line = f"Advisory: {result['advice']}"
-        pdf.cell(200, 10, txt=advice_line.encode('latin-1', 'replace').decode('latin-1'), ln=True)
-        pdf.output("report.pdf")
-        with open("report.pdf", "rb") as f:
-            st.download_button("📄 Download PDF", f, file_name="stock_report.pdf")
-
-        # DOC
-        doc = Document()
-        doc.add_heading("Stock Analysis Report", 0)
-        doc.add_paragraph(f"Advisory: {result['advice']}")
-        for i in range(len(result['primary'])):
-            doc.add_paragraph(f"Day {i+1}: {result['primary_stock']}={result['primary'][i]}, {result['competitor_stock']}={result['competitor'][i]}")
-        doc.save("report.docx")
-        with open("report.docx", "rb") as f:
-            st.download_button("📄 Download DOC", f, file_name="stock_report.docx")
-    else:
-        st.warning("Generate predictions to enable downloads.")
-
-
-# --- Footer ---
-st.markdown(
-    """
-    **Note:** Predictions are generated using machine learning models trained on historical data. Results may vary depending on market conditions.
-    """
-)
+        pdf.output("analysis.pdf")
+    if st.button("Download Document"):
+        st.write("Downloading Document...")
+        with open("analysis.doc", "w") as f:
+            f.write("Analysis Data")
