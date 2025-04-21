@@ -1,84 +1,71 @@
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU
+
 import streamlit as st
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import matplotlib.pyplot as plt
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.models import load_model
+import xgboost as xgb
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
 
-st.set_page_config(page_title="LSTM Overfitting Check", layout="wide")
-st.title("📊 LSTM Stock Forecasting with Overfitting Check")
+st.set_page_config(page_title="📈 Stock Forecaster", layout="wide")
+st.title("📈 LSTM & XGBoost Stock Forecasting App")
 
-# --- Step 1: Stock Selection ---
-stock_choice = st.selectbox("Choose Stock to Train", ["PEP", "KO"])
-ticker = "PEP" if stock_choice == "PEP" else "KO"
+# --- Upload / Load Models ---
+st.sidebar.header("🧠 Upload Models")
+lstm_pep_model_file = st.sidebar.file_uploader("Upload PEP LSTM (.h5)", type="h5")
+lstm_ko_model_file = st.sidebar.file_uploader("Upload KO LSTM (.h5)", type="h5")
+xgb_pep_model_file = st.sidebar.file_uploader("Upload PEP XGBoost (.json)", type="json")
+xgb_ko_model_file = st.sidebar.file_uploader("Upload KO XGBoost (.json)", type="json")
 
-# --- Step 2: Data Download ---
-@st.cache_data
-def get_data(ticker):
-    df = yf.download(ticker, start="2020-01-01", end="2024-12-02")
-    df = df[['Close']].copy()
-    df.dropna(inplace=True)
-    df['Adj Close'] = df['Close']
-    return df
+@st.cache_resource
+def load_lstm_model(file):
+    return load_model(file, compile=False)
 
-df = get_data(ticker)
-
-# --- Step 3: Preprocess ---
-scaler = MinMaxScaler()
-scaled = scaler.fit_transform(df[['Adj Close']])
-
-x, y = [], []
-for i in range(60, len(scaled)):
-    x.append(scaled[i-60:i, 0])
-    y.append(scaled[i, 0])
-
-x = np.array(x)
-y = np.array(y)
-x = np.reshape(x, (x.shape[0], x.shape[1], 1))
-
-# --- Step 4: Train/Val Split ---
-x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
-
-# --- Step 5: Train Model with Validation ---
-def build_lstm(input_shape):
-    model = Sequential([
-        LSTM(50, return_sequences=True, input_shape=input_shape),
-        Dropout(0.2),
-        LSTM(50, return_sequences=False),
-        Dropout(0.2),
-        Dense(25),
-        Dense(1)
-    ])
-    model.compile(optimizer='adam', loss='mean_squared_error')
+@st.cache_resource
+def load_xgb_model(file):
+    model = xgb.Booster()
+    model.load_model(file)
     return model
 
-model = build_lstm((x_train.shape[1], 1))
+lstm_models = {}
+if lstm_pep_model_file:
+    lstm_models["PEP"] = load_lstm_model(lstm_pep_model_file)
+    st.sidebar.success("PEP LSTM model loaded!")
+if lstm_ko_model_file:
+    lstm_models["KO"] = load_lstm_model(lstm_ko_model_file)
+    st.sidebar.success("KO LSTM model loaded!")
 
-with st.spinner("Training LSTM model..."):
-    history = model.fit(
-        x_train, y_train,
-        validation_data=(x_val, y_val),
-        epochs=10,
-        batch_size=1,
-        verbose=0
-    )
+xgb_models = {}
+if xgb_pep_model_file:
+    xgb_models["PEP"] = load_xgb_model(xgb_pep_model_file)
+    st.sidebar.success("PEP XGBoost model loaded!")
+if xgb_ko_model_file:
+    xgb_models["KO"] = load_xgb_model(xgb_ko_model_file)
+    st.sidebar.success("KO XGBoost model loaded!")
 
-# --- Step 6: Plot Loss ---
-st.subheader(f"📉 {stock_choice} Training vs Validation Loss")
+# --- Forecasting UI ---
+st.subheader("📊 Forecast Stock Prices")
+ticker = st.selectbox("Select Stock", ["PEP", "KO"])
+model_type = st.radio("Model Type", ["LSTM"], horizontal=True)
 
-fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(history.history['loss'], label='Train Loss')
-ax.plot(history.history['val_loss'], label='Val Loss')
-ax.set_title(f"{stock_choice} LSTM: Training vs Validation Loss")
-ax.set_xlabel("Epochs")
-ax.set_ylabel("Loss")
-ax.legend()
-ax.grid(True)
-st.pyplot(fig)
+if st.button("Predict Next 30 Days"):
+    df = yf.download(ticker, period="5y", interval="1d")
+    close = df[["Close"]].fillna(method='bfill')
 
-# --- Advice ---
-st.info("👉 If validation loss diverges from training loss, your model is likely overfitting.")
+    scaler = MinMaxScaler()
+    scaled = scaler.fit_transform(close)
+    last_60 = scaled[-60:].reshape(1, 60, 1)
 
+    if model_type == "LSTM" and ticker in lstm_models:
+        model = lstm_models[ticker]
+        predictions = []
+        for _ in range(30):
+            pred = model.predict(last_60, verbose=0)[0][0]
+            predictions.append(pred)
+            last_60 = np.append(last_60[:, 1:, :], [[[pred]]], axis=1)
+        result = scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
+        st.line_chart(pd.DataFrame(result, columns=["Forecasted Price"]))
+    else:
+        st.warning(f"Please upload the {model_type} model for {ticker}.")
