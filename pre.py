@@ -1,6 +1,4 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU
-
 import streamlit as st
 import numpy as np
 import pandas as pd
