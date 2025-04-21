@@ -11,4 +11,3 @@ lru_cache
 xgboost
 scipy
 scikit-learn
-sklearn
