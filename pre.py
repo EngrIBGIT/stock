@@ -16,8 +16,8 @@ st.title("📈 LSTM & XGBoost Stock Forecasting App")
 st.sidebar.header("🧠 Upload Models")
 lstm_pep_model_file = st.sidebar.file_uploader("Upload PEP LSTM (.h5)", type="h5")
 lstm_ko_model_file = st.sidebar.file_uploader("Upload KO LSTM (.h5)", type="h5")
-xgb_pep_model_file = st.sidebar.file_uploader("Upload PEP XGBoost (.json)", type="json")
-xgb_ko_model_file = st.sidebar.file_uploader("Upload KO XGBoost (.json)", type="json")
+xgb_pep_model_file = st.sidebar.file_uploader("Upload PEP XGBoost (.xgb)", type="xgb")
+xgb_ko_model_file = st.sidebar.file_uploader("Upload KO XGBoost (.xgb)", type="xgb")
 
 @st.cache_resource
 def load_lstm_model(file):
