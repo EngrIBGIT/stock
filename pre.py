@@ -8,6 +8,8 @@ import yfinance as yf
 from tensorflow.keras.models import load_model
 import xgboost as xgb
 from sklearn.preprocessing import MinMaxScaler
+from python-docx import Document 
+
 
 # --- App Config ---
 st.set_page_config(page_title="📈 Stock Forecaster", layout="wide")
