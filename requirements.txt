@@ -5,6 +5,7 @@ seaborn
 numpy
 matplotlib
 fpdf
+python-docx
 tensorflow
 plotly
 requests
