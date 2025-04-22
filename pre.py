@@ -26,13 +26,13 @@ def load_xgb_model(path):
 
 # Load models from local files
 lstm_models = {
-    "PEP": load_lstm_model("models/pep_lstm_model.h5") if os.path.exists("models/pep_lstm_model.h5") else None,
-    "KO": load_lstm_model("models/ko_lstm_model.h5") if os.path.exists("models/ko_lstm_model.h5") else None
+    "PEP": load_lstm_model("pep_lstm_model.h5") if os.path.exists("pep_lstm_model.h5") else None,
+    "KO": load_lstm_model("ko_lstm_model.h5") if os.path.exists("ko_lstm_model.h5") else None
 }
 
 xgb_models = {
-    "PEP": load_xgb_model("models/xgb_pep_model.xgb") if os.path.exists("models/xgb_pep_model.xgb") else None,
-    "KO": load_xgb_model("models/xgb_ko_model.xgb") if os.path.exists("models/xgb_ko_model.xgb") else None
+    "PEP": load_xgb_model("xgb_pep_model.xgb") if os.path.exists("xgb_pep_model.xgb") else None,
+    "KO": load_xgb_model("xgb_ko_model.xgb") if os.path.exists("xgb_ko_model.xgb") else None
 }
 
 # --- Forecast UI ---
