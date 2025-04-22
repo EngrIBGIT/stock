@@ -7,8 +7,8 @@ import requests
 import time
 import pickle
 from fpdf import FPDF
-#from docx import Document
-from python-docx import Document
+from docx import Document
+#from python-docx import Document
 from tensorflow.keras.models import load_model
 from xgboost import Booster
 import xgboost
