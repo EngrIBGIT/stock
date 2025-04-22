@@ -13,69 +13,52 @@ from sklearn.preprocessing import MinMaxScaler
 st.set_page_config(page_title="📈 Stock Forecaster", layout="wide")
 st.title("📈 LSTM & XGBoost Stock Forecasting App")
 
-# --- Sidebar: Upload Models ---
-st.sidebar.header("🧠 Upload Trained Models")
-lstm_pep_model_file = st.sidebar.file_uploader("Upload PEP LSTM (.h5)", type="h5")
-lstm_ko_model_file = st.sidebar.file_uploader("Upload KO LSTM (.h5)", type="h5")
-xgb_pep_model_file = st.sidebar.file_uploader("Upload PEP XGBoost (.json)", type="json")
-xgb_ko_model_file = st.sidebar.file_uploader("Upload KO XGBoost (.json)", type="json")
-
-# --- Model Loaders with Error Handling ---
+# --- Load Models Automatically ---
 @st.cache_resource
-def load_lstm_model(file):
-    try:
-        return load_model(file, compile=False)
-    except Exception as e:
-        st.sidebar.error(f"❌ Failed to load LSTM model: {e}")
-        return None
+def load_lstm_model(path):
+    return load_model(path, compile=False)
 
 @st.cache_resource
-def load_xgb_model(file):
-    try:
-        model = xgb.Booster()
-        model.load_model(file)
-        return model
-    except Exception as e:
-        st.sidebar.error(f"❌ Failed to load XGBoost model: {e}")
-        return None
+def load_xgb_model(path):
+    model = xgb.Booster()
+    model.load_model(path)
+    return model
 
-# --- Load Uploaded Models ---
-lstm_models = {}
-if lstm_pep_model_file:
-    lstm_models["PEP"] = load_lstm_model(lstm_pep_model_file)
-    if lstm_models["PEP"]: st.sidebar.success("✅ PEP LSTM model loaded")
+# Load models from local files
+lstm_models = {
+    "PEP": load_lstm_model("models/pep_lstm_model.h5") if os.path.exists("models/pep_lstm_model.h5") else None,
+    "KO": load_lstm_model("models/ko_lstm_model.h5") if os.path.exists("models/ko_lstm_model.h5") else None
+}
 
-if lstm_ko_model_file:
-    lstm_models["KO"] = load_lstm_model(lstm_ko_model_file)
-    if lstm_models["KO"]: st.sidebar.success("✅ KO LSTM model loaded")
+xgb_models = {
+    "PEP": load_xgb_model("models/xgb_pep_model.xgb") if os.path.exists("models/xgb_pep_model.xgb") else None,
+    "KO": load_xgb_model("models/xgb_ko_model.xgb") if os.path.exists("models/xgb_ko_model.xgb") else None
+}
 
-xgb_models = {}
-if xgb_pep_model_file:
-    xgb_models["PEP"] = load_xgb_model(xgb_pep_model_file)
-    if xgb_models["PEP"]: st.sidebar.success("✅ PEP XGBoost model loaded")
-
-if xgb_ko_model_file:
-    xgb_models["KO"] = load_xgb_model(xgb_ko_model_file)
-    if xgb_models["KO"]: st.sidebar.success("✅ KO XGBoost model loaded")
-
-# --- Forecast Section ---
+# --- Forecast UI ---
 st.subheader("📊 Forecast Stock Prices")
 ticker = st.selectbox("Select Stock", ["PEP", "KO"])
-model_type = st.radio("Model Type", ["LSTM"], horizontal=True)
+model_type = st.radio("Model Type", ["LSTM", "XGBoost"], horizontal=True)
 
-# --- Forecast Logic ---
+# --- Feature Input Section for XGBoost ---
+st.markdown("### 🔢 Input Features for XGBoost")
+xgb_inputs = {}
+xgb_features = ['Adj Close', 'Volume', 'RSI', 'SMA_20', 'MACD']
+for feat in xgb_features:
+    xgb_inputs[feat] = st.number_input(f"{feat}:", value=50.0, key=feat)
+
+# --- Prediction Trigger ---
 if st.button("🔮 Predict Next 30 Days"):
     try:
         df = yf.download(ticker, period="5y", interval="1d")
         df = df[["Close"]].dropna()
         scaler = MinMaxScaler()
         scaled = scaler.fit_transform(df)
-
         last_60 = scaled[-60:].reshape(1, 60, 1)
 
         if model_type == "LSTM":
-            if ticker not in lstm_models or lstm_models[ticker] is None:
-                st.error(f"⚠️ Please upload a valid LSTM model for {ticker}.")
+            if lstm_models[ticker] is None:
+                st.error(f"⚠️ LSTM model for {ticker} not found.")
             else:
                 model = lstm_models[ticker]
                 predictions = []
@@ -88,5 +71,15 @@ if st.button("🔮 Predict Next 30 Days"):
                 forecast_df = pd.DataFrame(forecasted, columns=["Forecasted Price"])
                 st.success(f"✅ Forecast for {ticker} complete.")
                 st.line_chart(forecast_df)
+
+        elif model_type == "XGBoost":
+            if xgb_models[ticker] is None:
+                st.error(f"⚠️ XGBoost model for {ticker} not found.")
+            else:
+                x_input = np.array([list(xgb_inputs.values())])
+                dmatrix = xgb.DMatrix(x_input, feature_names=xgb_features)
+                prediction = xgb_models[ticker].predict(dmatrix)
+                st.success(f"📈 {ticker} Forecasted Value: {prediction[0]:.2f}")
+
     except Exception as e:
         st.error(f"An error occurred during forecasting: {e}")
