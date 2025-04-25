@@ -15,11 +15,7 @@ scipy
 scikit-learn
 talib
 docx
-python-docx
-rich==14.0.0
-markdown-it-py==3.0.0
-pygments==2.19.1
-mdurl==0.1.2
+
 
 
 
