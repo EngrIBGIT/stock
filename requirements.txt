@@ -13,3 +13,9 @@ lru_cache
 xgboost
 scipy
 scikit-learn
+talib
+docx
+
+
+
+
