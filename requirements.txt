@@ -15,6 +15,9 @@ scipy
 scikit-learn
 talib
 docx
+rich 
+markdown-it-py
+
 
 
 
