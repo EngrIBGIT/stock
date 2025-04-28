@@ -9,7 +9,7 @@ python-docx
 tensorflow
 plotly
 requests
-lru_cache
+#lru_cache
 xgboost
 scipy
 scikit-learn
