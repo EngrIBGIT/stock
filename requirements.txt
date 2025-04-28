@@ -1,22 +1,18 @@
-pandas
-streamlit
-yfinance
-seaborn
-numpy
-matplotlib
-fpdf
-python-docx
-tensorflow
-plotly
-requests
-#lru_cache
-xgboost
-scipy
-scikit-learn
-talib
 docx
 
-
+streamlit
+numpy
+pandas
+plotly
+matplotlib
+requests
+fpdf2
+python-docx
+yfinance
+tensorflow
+xgboost
+scikit-learn
+ta-lib
 
 
 
